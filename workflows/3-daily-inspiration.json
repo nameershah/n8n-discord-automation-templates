@@ -1,0 +1,82 @@
+{
+  "name": "Daily Inspiration — Quote & Joke to Discord",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://v2.jokeapi.dev/joke/Programming?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single",
+        "options": {}
+      },
+      "id": "d240dc72-967e-438a-a71e-62ae969f03ca",
+      "name": "Joke API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1216, 2880],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "const q=$json[0]||{};return[{json:{quote:q.q||'No quote',author:q.a||'Unknown',joke:$json.joke||'No joke'}}];"
+      },
+      "id": "1ea03ba4-ce28-4deb-aeda-f5a1cd77b740",
+      "name": "Extract",
+      "type": "n8n-nodes-base.code",
+      "position": [1440, 2880],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const m=`\u2728 DAILY INSPIRATION \u2728\\n\\n\ud83d\udcd6 QUOTE\\n\\\"${$json.quote}\\\"\\n\u2014 ${$json.author}\\n\\n\ud83d\ude02 JOKE\\n${$json.joke}\\n\\n\ud83d\ude80 Stay inspired!`;return[{json:{msg:m}}];"
+      },
+      "id": "ab082c8c-7d7e-4de9-91e1-3b2a1b2a64ac",
+      "name": "Format",
+      "type": "n8n-nodes-base.code",
+      "position": [1664, 2880],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": { "__rl": true, "value": "YOUR_DISCORD_SERVER_ID", "mode": "id" },
+        "channelId": { "__rl": true, "value": "YOUR_DISCORD_CHANNEL_ID", "mode": "id" },
+        "content": "={{ $json.msg }}",
+        "options": {}
+      },
+      "id": "ad53abec-dbd8-4a48-a222-1d0e59f913e3",
+      "name": "Discord",
+      "type": "n8n-nodes-base.discord",
+      "position": [1872, 2880],
+      "typeVersion": 2,
+      "webhookId": "YOUR_DISCORD_WEBHOOK_ID",
+      "credentials": {
+        "discordBotApi": { "id": "YOUR_DISCORD_BOT_CREDENTIAL_ID", "name": "Discord Bot account" }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [800, 2880],
+      "id": "dbc46a1e-d1b9-4c24-ad21-6216b42c496d",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "url": "https://zenquotes.io/api/random",
+        "options": {}
+      },
+      "id": "27c3a0bf-0903-4f66-a80a-6c37617186cf",
+      "name": "Quote API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [992, 2880],
+      "typeVersion": 4.2
+    }
+  ],
+  "connections": {
+    "Joke API": { "main": [[{ "node": "Extract", "type": "main", "index": 0 }]] },
+    "Extract": { "main": [[{ "node": "Format", "type": "main", "index": 0 }]] },
+    "Format": { "main": [[{ "node": "Discord", "type": "main", "index": 0 }]] },
+    "When clicking 'Execute workflow'": { "main": [[{ "node": "Quote API", "type": "main", "index": 0 }]] },
+    "Quote API": { "main": [[{ "node": "Joke API", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": false, "instanceId": "" }
+}

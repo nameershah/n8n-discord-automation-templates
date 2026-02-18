@@ -1,0 +1,210 @@
+{
+  "name": "New & Upcoming Hackathons at USA — All 3 Tiers",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [1],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "592b2b8f-b949-4148-9725-7025bfba70c8",
+      "name": "Trigger: Every Monday at 9:30 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [-832, -32]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "tier1Universities",
+              "value": "MIT, Stanford, Harvard, Caltech, Princeton, Yale, Columbia, UChicago, UPenn, Duke, Northwestern, Johns Hopkins, Dartmouth, Brown, Cornell, Rice, Vanderbilt, Notre Dame, Georgetown, Emory",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "tier2Universities",
+              "value": "UCLA, UC Berkeley, Michigan, Carnegie Mellon, NYU, Boston University, Tufts, Tulane, USC, Wake Forest, Lehigh, Northeastern, Georgia Tech, UT Austin, UNC Chapel Hill, William and Mary, University of Washington, Purdue, Ohio State, Penn State",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "tier3Universities",
+              "value": "Arizona State, University of Arizona, University of Colorado, Indiana University, University of Oregon, University of Utah, Clemson, University of Alabama, University of Tennessee, University of Kentucky, University of Georgia, Virginia Tech, Iowa State, University of Iowa, University of Kansas, University of Missouri, University of Nebraska, University of Oklahoma, Oregon State, Washington State",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "todayDate",
+              "value": "={{ new Date().toISOString().split('T')[0] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2fbc8cf-031e-456d-a61b-ecc19f27c319",
+      "name": "Initialize: Set University Tiers & Date",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-624, -32]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Today: {{ $json.todayDate }}. Find 10+ ONLINE/VIRTUAL 2026 hackathons from US universities (tier 1, 2, or 3). Search devpost.com, mlh.io, hackathon.com. Extract: title, university, tier, format, deadline, event date, URL (only real URLs), description.\nRULES: Online only. No passed deadlines. Only real search URLs (no guessing). Leave URL blank if unsure.",
+        "options": {
+          "systemMessage": "Find online university hackathons. Only return real URLs from search results. Skip in-person events."
+        }
+      },
+      "id": "b0686d1f-eea3-42cf-b24e-fed3aee7dbaf",
+      "name": "AI Researcher: Search for Hackathons",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-432, -32]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": { "temperature": 0.1 }
+      },
+      "id": "24aed13e-0f95-4b83-8330-538d1be138f4",
+      "name": "Model: Groq Research Agent",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [-512, 224],
+      "credentials": {
+        "groqApi": {
+          "id": "YOUR_GROQ_CREDENTIAL_ID",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search the web for online hackathons and events. Provide a plain text search query. Returns real verified URLs — use ONLY these URLs, never guess or construct URLs yourself.",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "api_key", "value": "YOUR_TAVILY_API_KEY" },
+            { "name": "query", "value": "={{ $fromAI('query', 'The search query string to look up online hackathons', 'string') }}" },
+            { "name": "search_depth", "value": "advanced" },
+            { "name": "include_answer", "value": "basic" },
+            { "name": "max_results", "value": "10" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e5bbc9f-74ab-477b-8bc3-774a724b620e",
+      "name": "Tool: Tavily Web Search API",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [-224, 224]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Convert to valid JSON. Today is {{ $json.todayDate }}. Extract all hackathons from the research data. Return ONLY a JSON object, nothing else.\n\nIMPORTANT: The JSON must have this exact structure:\n{\"hackathons\":[{\"title\":\"String\",\"university\":\"String\",\"tier\":1,\"format\":\"online\",\"application_deadline\":\"YYYY-MM-DD or TBD\",\"event_date\":\"String or TBD\",\"url\":\"URL string or empty\",\"description\":\"String\"}]}\n\nRules:\n- ALWAYS set \"format\" to \"online\", \"virtual\", or \"hybrid\"\n- Set \"tier\" to 1, 2, 3, or \"Open\"\n- Use \"TBD\" for unknown dates/deadlines\n- Include empty string \"\" for missing URLs (never null)\n- Return ONLY the JSON object, no code blocks, no markdown, no extra text\n\nData to extract:\n{{ $json.output }}"
+      },
+      "id": "aabb4921-7e89-422d-afe1-3c32e3d2fb89",
+      "name": "AI Formatter: Convert to JSON",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [-144, -32]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": { "temperature": 0 }
+      },
+      "id": "b2f7f6ce-213a-4a75-a288-4b21b0a5e727",
+      "name": "Model: Groq Formatter Agent",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [16, 240],
+      "credentials": {
+        "groqApi": {
+          "id": "YOUR_GROQ_CREDENTIAL_ID_2",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($json.text || $json.output || $json.message || $json.response || $json.content || $json.result || '');\n\nif (!raw || raw.trim() === '') {\n  return [{json: {title: 'No Data', university: 'System', tier: 'N/A', format: 'online', application_deadline: 'TBD', event_date: 'TBD', url: '', description: 'No hackathons found'}}];\n}\n\nlet cleaned = raw\n  .replace(/^```json\\s*/gim, '')\n  .replace(/^```\\s*/gim, '')\n  .replace(/```\\s*$/gim, '')\n  .trim();\n\nconst start = cleaned.indexOf('{');\nconst end = cleaned.lastIndexOf('}');\n\nif (start === -1 || end === -1) {\n  return [{json: {title: 'Parse Error', university: 'System', tier: 'N/A', format: 'online', application_deadline: 'TBD', event_date: 'TBD', url: '', description: 'Could not find JSON in response'}}];\n}\n\nconst jsonStr = cleaned.substring(start, end + 1);\n\nlet parsed;\ntry {\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  return [{json: {title: 'JSON Error', university: 'System', tier: 'N/A', format: 'online', application_deadline: 'TBD', event_date: 'TBD', url: '', description: 'Invalid JSON: ' + e.message}}];\n}\n\nlet hackathons = parsed.hackathons || parsed.events || parsed.data || (Array.isArray(parsed) ? parsed : []);\n\nif (!Array.isArray(hackathons) || hackathons.length === 0) hackathons = [];\n\nif (hackathons.length === 0) {\n  return [{json: {title: 'No Hackathons', university: 'System', tier: 'N/A', format: 'online', application_deadline: 'TBD', event_date: 'TBD', url: '', description: 'No hackathons found in data'}}];\n}\n\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\n\nlet filtered = hackathons.filter(h => {\n  if (!h.title || !h.university) return false;\n  h.format = String(h.format || 'online').toLowerCase().trim();\n  const isOnline = ['online', 'virtual', 'hybrid', 'remote'].some(f => h.format.includes(f)) || (!h.format.includes('person'));\n  if (!isOnline) return false;\n  if (!h.application_deadline || h.application_deadline === 'TBD') return true;\n  try {\n    const d = new Date(h.application_deadline);\n    if (isNaN(d)) return true;\n    return d >= today;\n  } catch { return true; }\n});\n\nif (filtered.length === 0) {\n  return [{json: {title: 'No Online Hackathons', university: 'System', tier: 'N/A', format: 'online', application_deadline: 'TBD', event_date: 'TBD', url: '', description: 'All hackathons are past deadline or in-person'}}];\n}\n\nfiltered.sort((a, b) => {\n  const da = a.application_deadline === 'TBD' || !a.application_deadline ? new Date('9999-12-31') : new Date(a.application_deadline);\n  const db = b.application_deadline === 'TBD' || !b.application_deadline ? new Date('9999-12-31') : new Date(b.application_deadline);\n  return da - db;\n});\n\nreturn filtered.map(h => ({\n  json: {\n    title: String(h.title || 'Unknown').trim(),\n    university: String(h.university || 'Open').trim(),\n    tier: h.tier || 'Open',\n    format: String(h.format || 'online').trim(),\n    application_deadline: String(h.application_deadline || 'TBD').trim(),\n    event_date: String(h.event_date || 'TBD').trim(),\n    url: String(h.url || '').trim(),\n    description: String(h.description || '').trim()\n  }\n}));"
+      },
+      "id": "aef7e83e-4430-4786-a381-ca873e1ddc90",
+      "name": "Parser: Extract & Split Hackathons",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [144, -32]
+    },
+    {
+      "parameters": {
+        "jsCode": "const title = String($json.title || 'Hackathon');\nconst url = String($json.url || '');\nconst key = url.trim() || title.trim();\n\nif (!key) return null;\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData.sentUrls = staticData.sentUrls || [];\n\nif (staticData.sentUrls.indexOf(key) !== -1) return null;\n\nstaticData.sentUrls.push(key);\nif (staticData.sentUrls.length > 500) staticData.sentUrls.shift();\n\nreturn $json;"
+      },
+      "id": "9a76695e-e0af-444f-8182-d928822b1d5a",
+      "name": "Filter: Remove Already-Sent Duplicates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [336, -32]
+    },
+    {
+      "parameters": {
+        "jsCode": "const title = String($json.title || 'Hackathon');\nconst university = String($json.university || 'University');\nconst tier = String($json.tier || 'Open');\nconst format = String($json.format || 'online').toUpperCase();\nconst deadline = String($json.application_deadline || 'TBD');\nconst eventDate = String($json.event_date || 'TBD');\nconst description = String($json.description || 'Check details');\nconst url = String($json.url || '');\n\nlet emoji = '\u26aa';\nlet urgency = 'TBD';\n\nif (deadline !== 'TBD' && deadline.trim() !== '') {\n  try {\n    const today = new Date();\n    today.setHours(0, 0, 0, 0);\n    const deadlineDate = new Date(deadline);\n    if (!isNaN(deadlineDate.getTime())) {\n      const daysLeft = Math.ceil((deadlineDate - today) / 86400000);\n      if (daysLeft <= 3 && daysLeft > 0) { emoji = '\ud83d\udd34'; urgency = daysLeft + ' day(s) - URGENT!'; }\n      else if (daysLeft <= 7) { emoji = '\ud83d\udfe0'; urgency = daysLeft + ' days left'; }\n      else if (daysLeft <= 14) { emoji = '\ud83d\udfe1'; urgency = daysLeft + ' days left'; }\n      else { emoji = '\ud83d\udfe2'; urgency = daysLeft + ' days left'; }\n    }\n  } catch (e) { emoji = '\u26aa'; urgency = 'TBD'; }\n}\n\nconst msg = emoji + ' **' + title + '**\\n' +\n  '\ud83c\udfd9\ufe0f **' + university + '** (Tier ' + tier + ') \ud83d\udcbb ' + format + '\\n' +\n  '\u23f0 **Deadline:** ' + deadline + ' \u2014 ' + urgency + '\\n' +\n  '\ud83d\udcc5 **Event:** ' + eventDate + '\\n' +\n  '\ud83d\udcdd ' + description + '\\n' +\n  (url ? '\ud83d\udd17 ' + url : '\ud83d\udd17 No link');\n\nreturn [{ json: { title, university, tier, format, application_deadline: deadline, event_date: eventDate, url, description, formattedMessage: msg } }];"
+      },
+      "id": "c75c2019-2cfa-49a8-9d70-4e92541eccbd",
+      "name": "Formatter: Create Discord Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [512, -32]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": { "__rl": true, "value": "YOUR_DISCORD_SERVER_ID", "mode": "id" },
+        "channelId": { "__rl": true, "value": "YOUR_DISCORD_CHANNEL_ID", "mode": "id" },
+        "content": "={{ $json.formattedMessage }}",
+        "options": {}
+      },
+      "id": "642a6495-7708-4cda-9b6c-8ff90bb31812",
+      "name": "Send: Post to Discord Channel",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [688, -32],
+      "webhookId": "YOUR_DISCORD_WEBHOOK_ID",
+      "credentials": {
+        "discordBotApi": { "id": "YOUR_DISCORD_BOT_CREDENTIAL_ID", "name": "Discord Bot account" }
+      }
+    }
+  ],
+  "connections": {
+    "Trigger: Every Monday at 9:30 AM": { "main": [[{ "node": "Initialize: Set University Tiers & Date", "type": "main", "index": 0 }]] },
+    "Initialize: Set University Tiers & Date": { "main": [[{ "node": "AI Researcher: Search for Hackathons", "type": "main", "index": 0 }]] },
+    "AI Researcher: Search for Hackathons": { "main": [[{ "node": "AI Formatter: Convert to JSON", "type": "main", "index": 0 }]] },
+    "Model: Groq Research Agent": { "ai_languageModel": [[{ "node": "AI Researcher: Search for Hackathons", "type": "ai_languageModel", "index": 0 }]] },
+    "Tool: Tavily Web Search API": { "ai_tool": [[{ "node": "AI Researcher: Search for Hackathons", "type": "ai_tool", "index": 0 }]] },
+    "AI Formatter: Convert to JSON": { "main": [[{ "node": "Parser: Extract & Split Hackathons", "type": "main", "index": 0 }]] },
+    "Model: Groq Formatter Agent": { "ai_languageModel": [[{ "node": "AI Formatter: Convert to JSON", "type": "ai_languageModel", "index": 0 }]] },
+    "Parser: Extract & Split Hackathons": { "main": [[{ "node": "Filter: Remove Already-Sent Duplicates", "type": "main", "index": 0 }]] },
+    "Filter: Remove Already-Sent Duplicates": { "main": [[{ "node": "Formatter: Create Discord Message", "type": "main", "index": 0 }]] },
+    "Formatter: Create Discord Message": { "main": [[{ "node": "Send: Post to Discord Channel", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": false, "instanceId": "" }
+}

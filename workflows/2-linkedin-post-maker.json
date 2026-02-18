@@ -1,0 +1,97 @@
+{
+  "name": "AI LinkedIn Post Generator — Random Topics to Discord",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8d7a8727-3bc8-4442-aea5-e7d605d021df",
+      "name": "Execute Workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-3008, 2240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const topics = [\n  {topic:'AI & Automation', desc:'How artificial intelligence is transforming workplace productivity and efficiency in 2026'},\n  {topic:'Remote Work Culture', desc:'Building and maintaining strong team dynamics in a distributed workforce environment'},\n  {topic:'Digital Transformation', desc:'Strategic technology adoption for competitive advantage in modern business landscape'},\n  {topic:'Professional Development', desc:'Continuous learning and career advancement in the rapidly evolving tech industry'},\n  {topic:'Innovation & Leadership', desc:'Navigating organizational change and leading teams through digital disruption'}\n];\nconst selected = topics[Math.floor(Math.random() * topics.length)];\nreturn [{json: {topic: selected.topic, description: selected.desc}}];"
+      },
+      "id": "3a8ba202-079b-4531-9b75-aee92e3a158a",
+      "name": "Random Topic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2800, 2240]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Expert LinkedIn strategist. Create ONE highly engaging, professional, and viral post about: {{ $json.topic }}\n\nContext: {{ $json.description }}\n\nREQUIREMENTS:\n- Length: 200-300 words\n- Tone: Authoritative, forward-thinking, and professional\n- Structure: Strong hook, data-backed insight, 3 bulleted takeaways, and a discussion-starting question\n- No emojis\n- Include 3 trending hashtags",
+        "options": {}
+      },
+      "id": "1c53f473-7f8d-4e4f-8ea3-1bbb0387fcff",
+      "name": "Professional Content Creator",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [-2576, 2240]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": { "temperature": 0.7 }
+      },
+      "id": "f56e657d-35e6-421e-821e-2999dc7af9ac",
+      "name": "Groq LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [-2576, 2448],
+      "credentials": {
+        "groqApi": { "id": "YOUR_GROQ_CREDENTIAL_ID", "name": "Groq account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    post: $json.output,\n    topic: $node[\"Random Topic\"].json.topic,\n    timestamp: new Date().toLocaleDateString()\n  }\n}];"
+      },
+      "id": "0391defa-1400-4bc3-8ac0-a518c794dc05",
+      "name": "Extract Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2224, 2240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = `\ud83d\ude80 **NEW LINKEDIN POST READY**\n\n**Topic:** ${$json.topic}\n**Date:** ${$json.timestamp}\n\n---\n\n${$json.post}\n\n---\n\n**Posting Tip:** Post this between 8 AM - 10 AM local time for maximum B2B reach.`;\n\nreturn [{json: {message: msg}}];"
+      },
+      "id": "27b7e7fa-29f3-47ce-a5a2-01a7e4534377",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1952, 2240]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": { "__rl": true, "value": "YOUR_DISCORD_SERVER_ID", "mode": "id" },
+        "channelId": { "__rl": true, "value": "YOUR_DISCORD_CHANNEL_ID", "mode": "id" },
+        "content": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "e61763a8-e916-48bd-bb96-5aaf2f2d80ac",
+      "name": "Discord",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [-1744, 2240],
+      "webhookId": "YOUR_DISCORD_WEBHOOK_ID",
+      "credentials": {
+        "discordBotApi": { "id": "YOUR_DISCORD_BOT_CREDENTIAL_ID", "name": "Discord Bot account" }
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow": { "main": [[{ "node": "Random Topic", "type": "main", "index": 0 }]] },
+    "Random Topic": { "main": [[{ "node": "Professional Content Creator", "type": "main", "index": 0 }]] },
+    "Professional Content Creator": { "main": [[{ "node": "Extract Content", "type": "main", "index": 0 }]] },
+    "Groq LLM": { "ai_languageModel": [[{ "node": "Professional Content Creator", "type": "ai_languageModel", "index": 0 }]] },
+    "Extract Content": { "main": [[{ "node": "Format Message", "type": "main", "index": 0 }]] },
+    "Format Message": { "main": [[{ "node": "Discord", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": false, "instanceId": "" }
+}
