@@ -1,173 +1,97 @@
-# MentorAI — Agentic Study OS
+# n8n Discord Automation Templates
 
-> Transform static study materials into dynamic, AI-powered learning sessions.
+> Three plug-and-play n8n workflows that deliver AI-powered content to your Discord server — no coding required.
 
-![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
-![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat-square&logo=tailwind-css)
-![Gemini](https://img.shields.io/badge/Gemini-1.5_Pro-4285F4?style=flat-square&logo=google)
+![n8n](https://img.shields.io/badge/n8n-Automation-FF6D5A?style=flat-square&logo=n8n)
+![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3_70B-F55036?style=flat-square)
+![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?style=flat-square&logo=discord)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-MentorAI is a NotebookLM-inspired study assistant built for BS AI students. It combines Retrieval Augmented Generation (RAG), adaptive quizzing, and voice-enabled interactions in a clean three-column interface.
+Built and demonstrated live at **HEC Generative AI Cohort 2 — Module 5**, organized by iCode Guru in collaboration with NCEAC, HEC, PakAngels, ULEF, and Aspire Pakistan.
 
 ---
 
-## Features
+## Workflows
 
-**Intelligence Hub** — Context-aware chat powered by Gemini 1.5 Pro with document-grounded responses, real-time thinking indicators, and voice input/output.
+### 1. 🎯 Hackathon Finder
+`workflows/1-hackathon-finder.json`
 
-**Assessment Agent** — AI-generated adaptive quizzes with instant feedback, detailed explanations, and progress tracking.
+Runs every Monday at 9:30 AM, searches the web for upcoming **online/virtual hackathons** from 60+ US universities across Tier 1, 2, and 3, and posts them to Discord with urgency color-coding. Deduplication ensures the same hackathon is never posted twice.
 
-**Prep Station** — Upload and pin PDF documents, generate Markdown cheat sheets, export session history as JSON, and manage your context registry.
+**Urgency indicators:** 🔴 ≤3 days · 🟠 ≤7 days · 🟡 ≤14 days · 🟢 Plenty of time
 
-**Data Management** — All data stays in your browser. Full export and factory reset controls included.
-
----
-
-## Quick Start
-
-### Prerequisites
-- Node.js 16+
-- A [Gemini API key](https://makersuite.google.com/app/apikey)
-
-### Installation
-
-```bash
-# Create project
-npm create vite@latest mentorai -- --template react
-cd mentorai
-
-# Install dependencies
-npm install lucide-react
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-```
-
-### Configure Tailwind
-
-`tailwind.config.js`:
-```js
-export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-    },
-  },
-  plugins: [],
-}
-```
-
-`src/index.css`:
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-### Run
-
-```bash
-# Replace src/App.jsx with the provided mentorai-app.jsx
-npm run dev
-```
+**Requires:** Groq API · Tavily Search API · Discord Bot
 
 ---
 
-## API Integration
+### 2. 💼 LinkedIn Post Maker
+`workflows/2-linkedin-post-maker.json`
 
-Create a `.env` file in the project root:
+Picks a random professional topic, uses Groq's LLaMA model to generate a 200–300 word LinkedIn post with a strong hook, data-backed insights, three takeaways, and trending hashtags — then delivers it to Discord ready to copy-paste.
 
-```env
-VITE_GEMINI_API_KEY=your_api_key_here
+**Topics covered:** AI & Automation · Remote Work · Digital Transformation · Professional Development · Innovation & Leadership
+
+**Requires:** Groq API · Discord Bot
+
+---
+
+### 3. ✨ Daily Inspiration
+`workflows/3-daily-inspiration.json`
+
+Fetches a random motivational quote from ZenQuotes and a safe programming joke from JokeAPI, then posts a formatted message to Discord. No API keys needed — both sources are free and public.
+
+**Requires:** Discord Bot only
+
+---
+
+## Setup
+
+### Step 1 — Import a workflow
+1. Open your n8n instance
+2. Click **New Workflow → ··· → Import from file**
+3. Select a `.json` file from the `workflows/` folder
+
+### Step 2 — Connect your credentials
+
+| Placeholder | How to get it |
+|-------------|--------------|
+| `YOUR_GROQ_CREDENTIAL_ID` | [console.groq.com](https://console.groq.com) → API Keys, then add in n8n Credentials |
+| `YOUR_TAVILY_API_KEY` | [tavily.com](https://tavily.com) → Dashboard → API Keys |
+| `YOUR_DISCORD_SERVER_ID` | Discord → Enable Developer Mode → Right-click your server → Copy ID |
+| `YOUR_DISCORD_CHANNEL_ID` | Discord → Right-click channel → Copy Channel ID |
+| `YOUR_DISCORD_BOT_CREDENTIAL_ID` | [discord.com/developers](https://discord.com/developers/applications) → create a bot, then add in n8n Credentials |
+
+### Step 3 — Activate
+Save the workflow and toggle it **Active**. For manual workflows, click **Execute Workflow** to test.
+
+---
+
+## Requirements
+
+- n8n v1.0+ (cloud or self-hosted)
+- Groq account — free tier available
+- Tavily account — free tier available (Workflow 1 only)
+- Discord Bot with `Send Messages` permission
+
+---
+
+## Repository Structure
+
 ```
-
-Then update the `sendMessage` function in the component:
-
-```javascript
-const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `Context: ${pinnedDocument?.name ?? 'None'}\n\nUser: ${message}`
-        }]
-      }]
-    })
-  }
-);
-
-const data = await response.json();
-const aiMessage = {
-  id: Date.now() + 1,
-  role: 'assistant',
-  content: data.candidates[0].content.parts[0].text,
-  timestamp: new Date().toISOString(),
-};
+n8n-discord-automation-templates/
+├── README.md
+└── workflows/
+    ├── 1-hackathon-finder.json
+    ├── 2-linkedin-post-maker.json
+    └── 3-daily-inspiration.json
 ```
-
----
-
-## Feature Status
-
-| Feature | Status |
-|---------|--------|
-| Three-column layout | ✅ Complete |
-| Session management | ✅ Complete |
-| Voice TTS & STT | ✅ Complete |
-| PDF upload & pinning | ✅ Complete |
-| Adaptive quiz generator | ✅ Complete |
-| Cheat sheet export | ✅ Complete |
-| Session history export | ✅ Complete |
-| RAG integration | 🔄 Pending API |
-| LaTeX rendering | 🔄 Pending KaTeX |
-| Mermaid diagrams | 🔄 Pending |
-
----
-
-## Deployment
-
-```bash
-# Build
-npm run build
-
-# Deploy to Vercel
-npx vercel
-
-# Deploy to Netlify
-netlify deploy --prod --dir=dist
-```
-
----
-
-## Troubleshooting
-
-**Voice features not working** — Ensure you're on `localhost` or HTTPS. Check browser microphone permissions and confirm Web Speech API support.
-
-**PDF not processing** — Confirm the file is `.pdf` format. Check browser storage quota and file API support.
-
-**LocalStorage issues** — Clear browser cache, confirm cookies and storage are enabled in browser settings.
-
----
-
-## Tech Stack
-
-- **Frontend:** React 18, Tailwind CSS, Lucide Icons
-- **AI:** Google Gemini 1.5 Pro
-- **Speech:** Web Speech API (native browser)
-- **Storage:** Browser localStorage (client-side only)
-- **Design:** Obsidian-inspired dark UI, NotebookLM layout
 
 ---
 
 ## License
 
-MIT — free for educational and personal use.
+MIT — free to use, modify, and share. Attribution appreciated.
 
 ---
 
-*MentorAI — Built for learners who think in systems.*
+> ⭐ Found this useful? Star the repo and share it with your network!
